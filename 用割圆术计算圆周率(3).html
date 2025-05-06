@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>正多边形计算</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f9;
+        }
+
+        input[type="number"] {
+            transition: border-color 0.3s ease;
+        }
+
+            input[type="number"]:focus {
+                border-color: #4f46e5;
+            }
+
+        button {
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+            button:hover {
+                background-color: #4338ca;
+                transform: scale(1.05);
+            }
+
+        #result {
+            transition: opacity 0.3s ease;
+        }
+
+        svg {
+            border: 1px solid #ccc;
+            margin-top: 20px;
+            background-color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .download-btn {
+            background-color: #10b981;
+        }
+
+            .download-btn:hover {
+                background-color: #0d9f6e;
+            }
+    </style>
+</head>
+
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">正多边形计算</h1>
+    <div class="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        <div class="mb-4">
+            <label for="sides" class="block text-gray-700 text-sm font-bold mb-2">正多边形边数:</label>
+            <input type="number" id="sides" class="border border-gray-300 p-2 w-full rounded" min="3" value="3">
+        </div>
+        <div class="mb-4">
+            <label for="diameter" class="block text-gray-700 text-sm font-bold mb-2">外接圆直径 (厘米):</label>
+            <input type="number" id="diameter" class="border border-gray-300 p-2 w-full rounded" min="1" value="100">
+        </div>
+        <div class="button-group">
+            <button id="calculate"
+                    class="bg-blue-500 text-white p-2 rounded w-full hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-300">
+                计算
+            </button>
+            <button id="download"
+                    class="download-btn text-white p-2 rounded w-full hover:bg-green-600 focus:outline-none focus:ring focus:ring-green-300">
+                下载图片
+            </button>
+        </div>
+    </div>
+    <div id="result" class="mt-4 bg-white p-6 rounded-lg shadow-md w-full max-w-md opacity-0">
+        <p id="perimeter" class="text-gray-700 mb-2">正多边形周长 (厘米): <span class="font-bold"></span></p>
+        <p id="ratio" class="text-gray-700">周长与直径比值: <span class="font-bold"></span></p>
+    </div>
+    <div class="flex flex-col items-center">
+        <svg id="polygon-svg" width="400" height="400" viewBox="-200 -200 400 400"></svg>
+        <p class="text-gray-600 mt-2">正多边形示意图</p>
+    </div>
+    <table id="ratio-table" class="w-full max-w-md">
+        <thead>
+            <tr>
+                <th>边数</th>
+                <th>周长与直径比值</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        const calculateButton = document.getElementById('calculate');
+        const downloadButton = document.getElementById('download');
+        const resultDiv = document.getElementById('result');
+        const perimeterSpan = document.getElementById('perimeter').querySelector('span');
+        const ratioSpan = document.getElementById('ratio').querySelector('span');
+        const svg = document.getElementById('polygon-svg');
+        const ratioTable = document.getElementById('ratio-table').getElementsByTagName('tbody')[0];
+
+        // 绘制正多边形函数 - 修改后的版本
+        function drawPolygon(sides, diameter) {
+            const radius = diameter / 2;
+            const centralAngle = (2 * Math.PI) / sides;
+
+            // 清空 SVG
+            svg.innerHTML = '';
+
+            // 绘制外接圆
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', 0);
+            circle.setAttribute('cy', 0);
+            circle.setAttribute('r', radius);
+            circle.setAttribute('fill', 'none');
+            circle.setAttribute('stroke', 'gray');
+            circle.setAttribute('stroke-dasharray', '5,5');
+            svg.appendChild(circle);
+
+            // 绘制正多边形
+            let points = '';
+            for (let i = 0; i < sides; i++) {
+                const angle = i * centralAngle - Math.PI / 2; // 调整角度使第一个顶点在顶部
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle);
+                points += `${x},${y} `;
+            }
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', points.trim());
+            polygon.setAttribute('fill', 'none');
+            polygon.setAttribute('stroke', 'black');
+            polygon.setAttribute('stroke-width', '2');
+            svg.appendChild(polygon);
+
+            // 添加直径标注
+            const diameterLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            diameterLine.setAttribute('x1', -radius);
+            diameterLine.setAttribute('y1', 0);
+            diameterLine.setAttribute('x2', radius);
+            diameterLine.setAttribute('y2', 0);
+            diameterLine.setAttribute('stroke', 'blue');
+            diameterLine.setAttribute('stroke-width', '2');
+            svg.appendChild(diameterLine);
+
+            const diameterText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            diameterText.setAttribute('x', 0);
+            diameterText.setAttribute('y', -radius - 20);
+            diameterText.setAttribute('text-anchor', 'middle');
+            diameterText.setAttribute('font-size', '14');
+            diameterText.setAttribute('fill', 'blue');
+            diameterText.textContent = `直径 = ${diameter}cm`;
+            svg.appendChild(diameterText);
+
+            // 添加内角连线
+            for (let i = 0; i < sides; i++) {
+                const angle = i * centralAngle - Math.PI / 2;
+                const x = radius * Math.cos(angle);
+                const y = radius * Math.sin(angle);
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', 0);
+                line.setAttribute('y1', 0);
+                line.setAttribute('x2', x);
+                line.setAttribute('y2', y);
+                line.setAttribute('stroke', 'gray');
+                line.setAttribute('stroke-width', '1');
+                svg.appendChild(line);
+            }
+        }
+
+        // 计算函数
+        function calculate() {
+            const sides = parseInt(document.getElementById('sides').value);
+            const diameter = parseFloat(document.getElementById('diameter').value);
+
+            const radius = diameter / 2;
+            const centralAngle = (2 * Math.PI) / sides;
+            const sideLength = 2 * radius * Math.sin(centralAngle / 2);
+            const perimeter = sideLength * sides;
+            const ratio = perimeter / diameter;
+
+            perimeterSpan.textContent = perimeter.toFixed(4);
+
+            // 根据边数确定小数位数
+            const decimalPlaces = Math.floor(sides / 10) + 4;
+            ratioSpan.textContent = ratio.toFixed(decimalPlaces);
+
+            resultDiv.style.opacity = 1;
+
+            // 绘制图形
+            drawPolygon(sides, diameter);
+
+            // 添加记录到表格
+            const newRow = ratioTable.insertRow();
+            const sideCell = newRow.insertCell(0);
+            const ratioCell = newRow.insertCell(1);
+            sideCell.textContent = sides;
+            ratioCell.textContent = ratio.toFixed(decimalPlaces);
+        }
+
+        // 下载图片函数
+        function downloadImage() {
+            const sides = parseInt(document.getElementById('sides').value);
+            const diameter = parseFloat(document.getElementById('diameter').value);
+
+            // 创建一个临时SVG用于导出
+            const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            tempSvg.setAttribute('width', '500');
+            tempSvg.setAttribute('height', '500');
+            tempSvg.setAttribute('viewBox', '-200 -200 400 400');
+            tempSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+            // 克隆原始SVG内容
+            const svgContent = svg.cloneNode(true);
+            tempSvg.appendChild(svgContent);
+
+            // 添加样式
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+            style.textContent = `
+                    text { font-family: Arial, sans-serif; }
+                    polygon { fill: none; stroke: black; stroke-width: 2; }
+                    circle { fill: none; stroke: gray; stroke-dasharray: 5,5; stroke-width: 1; }
+                    line { stroke: gray; stroke-width: 1; }
+                `;
+            tempSvg.insertBefore(style, tempSvg.firstChild);
+
+            // 将SVG转换为数据URL
+            const serializer = new XMLSerializer();
+            let svgStr = serializer.serializeToString(tempSvg);
+            svgStr = '<?xml version="1.0" standalone="no"?>\n' + svgStr;
+
+            const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // 创建Canvas进行转换
+            const canvas = document.createElement('canvas');
+            canvas.width = 500;
+            canvas.height = 500;
+            const ctx = canvas.getContext('2d');
+
+            const img = new Image();
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(svgUrl);
+
+                // 转换为PNG并下载
+                canvas.toBlob(function (blob) {
+                    const pngUrl = URL.createObjectURL(blob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = pngUrl;
+                    downloadLink.download = `正${sides}边形_直径${diameter}cm.png`;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    setTimeout(() => URL.revokeObjectURL(pngUrl), 100);
+                }, 'image/png');
+            };
+
+            img.src = svgUrl;
+        }
+
+        // 事件监听
+        calculateButton.addEventListener('click', calculate);
+        downloadButton.addEventListener('click', downloadImage);
+
+        // 初始计算
+        calculate();
+    </script>
+</body>
+
+</html>
